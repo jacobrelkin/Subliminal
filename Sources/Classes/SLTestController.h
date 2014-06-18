@@ -22,6 +22,7 @@
 
 #import <Foundation/Foundation.h>
 
+@class SLAccessibilityPath;
 
 /**
  `SLTestController` coordinates test execution. Its singleton instance
@@ -36,12 +37,12 @@
 
 /**
  Subliminal's timeout.
- 
- Various classes within Subliminal use this timeout to control operations that 
+
+ Various classes within Subliminal use this timeout to control operations that
  involve waiting. In particular, this timeout is used to wait for interface elements
- to become valid and/or tappable, as required by the tests. 
+ to become valid and/or tappable, as required by the tests.
  See `+[SLUIAElement defaultTimeout]`.
- 
+
  The default value is 5 seconds.
  */
 @property (nonatomic) NSTimeInterval defaultTimeout;
@@ -53,7 +54,7 @@
 
 /**
  Returns the test controller.
- 
+
  @return The shared `SLTestController` instance.
  */
 + (instancetype)sharedTestController;
@@ -64,7 +65,7 @@
 /// -------------------------------------------
 
 /**
- Run the specified tests by invoking `runTests:usingSeed:withCompletionBlock:` 
+ Run the specified tests by invoking `runTests:usingSeed:withCompletionBlock:`
  with `SLTestControllerRandomSeed` and the specified completion block.
 
  @param tests The set of tests to run.
@@ -83,16 +84,16 @@
 
  Tests must [support the current platform](+[SLTest supportsCurrentPlatform]) in order to be run.
  If any tests [are focused](+[SLTest isFocused]), only those tests will be run.
- 
+
  When using a given seed, tests execute in the same relative order regardless of focus.
- That is, if a set of tests _| A, B, C, D |_ (all unfocused) 
+ That is, if a set of tests _| A, B, C, D |_ (all unfocused)
  are run in order _[ B, A, C, D ]_ when using a certain seed,
  when tests _B_ and _C_ are focused, they will be run in order _[ B, C ]_.
 
  When all tests have finished, the completion block (if provided)
- will be executed on the main queue. The test controller will then signal 
+ will be executed on the main queue. The test controller will then signal
  UIAutomation to finish executing commands.
- 
+
  @param tests The set of tests to run.
  @param seed  The seed to use to randomize the tests.
  If `SLTestControllerRandomSeed` is passed, the test controller will choose a seed.
@@ -104,7 +105,7 @@
 
 
 /**
- The methods in the `SLTestController (DebugSettings)` category may be useful 
+ The methods in the `SLTestController (DebugSettings)` category may be useful
  in debugging tests.
  */
 @interface SLTestController (DebugSettings)
@@ -115,36 +116,53 @@
 /// -------------------------------------------
 
 /**
- Determines whether the controller should wait, after `-runTests:withCompletionBlock:` 
+ Determines whether the controller should wait, after `-runTests:withCompletionBlock:`
  is invoked, to start testing.
- 
- If this is YES, the test controller will show an alert after 
- `runTests:withCompletionBlock:` is invoked and will not begin testing until 
+
+ If this is YES, the test controller will show an alert after
+ `runTests:withCompletionBlock:` is invoked and will not begin testing until
  the developer has dismissed that alert.
- 
- This allows the developer time to attach the debugger to the tests. That is done 
+
+ This allows the developer time to attach the debugger to the tests. That is done
  by launching the tests, then clicking the following menu items, in Xcode:
- 
+
     Product -> Attach to Process -> <name of testing target, at top>
- 
+
  This setting will only take effect if the target is built in the "Debug"
- configuration (with the `DEBUG` preprocessor macro set). This is to prevent the 
- alert from showing when built (in "Release") for an unattended, continuous 
- integration run; and to ensure that debug information will be available to the 
+ configuration (with the `DEBUG` preprocessor macro set). This is to prevent the
+ alert from showing when built (in "Release") for an unattended, continuous
+ integration run; and to ensure that debug information will be available to the
  debugger (whereas the Release configuration may optimize that information away).
- 
+
  To build the tests in Debug, click the the "Scheme" dropdown in the upper
  left-hand corner, then the following menu items:
-    
-    <Manage Scheme> -> (double-click) <name of your "Integration Tests" scheme> -> 
+
+    <Manage Scheme> -> (double-click) <name of your "Integration Tests" scheme> ->
     "Profile" (in the left side-bar)
- 
- and change the "Build Configuration" to "Debug". 
+
+ and change the "Build Configuration" to "Debug".
  */
 @property (nonatomic) BOOL shouldWaitToStartTesting;
 
-@end
+/**
+ Dumps the native and JavaScript representations of the accessibility
+ hierarchy. This is here only for debugging purposes and probably shouldn't be left in
+ actual running tests.
 
+ NOTE: It swizzles all of the accessibility hierarchy, so if executing this from the
+ debug console, make sure it during a call to -[SLAccessibilityPath bindPath].
+ */
++ (void)dumpFullElementTree;
+
+/**
+ A debug method that ensures that the accessibility hierarchy is well-formed. It is
+ intended to be used to check the swizzled accessibility path within the block callback
+ from -[SLAccessibilityPath bindPath]. It does currently disturb the SLAccessibilityPath
+ object itself, because the object isn't copyable.
+ */
++ (void)testAccessibilityPath:(SLAccessibilityPath *)path;
+
+@end
 
 #pragma mark - Constants
 

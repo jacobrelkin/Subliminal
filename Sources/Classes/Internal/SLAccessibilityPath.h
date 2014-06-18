@@ -44,6 +44,11 @@
  */
 - (SLAccessibilityPath *)slAccessibilityPathToElement:(SLElement *)element;
 
+/**
+ This is for debugging only
+ */
+- (void)slDumpAllDescendantAccessibilityElements;
+
 @end
 
 
@@ -136,5 +141,29 @@
  corresponding to the last component of the receiver.
  */
 - (NSString *)UIARepresentation;
+
+/**
+ Returns the representation of the path as understood by UIAutomation.
+
+ @see -UIARepresentation
+
+ @param itemsToIgnore The number of items to leave off the UIA query string
+
+ @return A JavaScript expression that represents the absolute path to the `UIAElement`
+ corresponding to the last component of the receiver.
+ */
+- (NSString *)UIARepresentationExcludingElementsFromTheEnd:(NSUInteger)numberToExclude;
+
+/**
+ @return The number of items contained within the private _accessibilityElementPath array.
+ */
+- (NSUInteger)countOfElementsInPath;
+
+/**
+ @param index The index of which item to return from the accessibility path.
+
+ @return The element at the specified index.
+ */
+- (NSString *)recursiveDescriptionExcludingPathElementsFromTheEnd:(NSUInteger)numberToExclude;
 
 @end

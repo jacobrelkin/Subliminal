@@ -64,7 +64,7 @@ Required arguments:
 	-workspace <workspace_path>	Build the workspace at the specified path.
 					Either this, \`-project\`, or \'prebuilt-app\' must be specified.
 
-        -prebuilt_app <path_to_app>	Use the APP at the specified path, rather than building a new one.
+	-prebuilt_app <path_to_app>	Use the APP at the specified path, rather than building a new one.
 					If it was built for iphoneos, then -hw_id must be used.
 					If it was built for iphonesimulator, then -sim_device must be used.
 					Either this, \`-project\`, or \'-workspace\' must be specified.

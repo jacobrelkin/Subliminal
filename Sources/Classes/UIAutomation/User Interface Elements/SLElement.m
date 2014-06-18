@@ -20,6 +20,7 @@
 //  limitations under the License.
 //
 
+#import "SLTestController.h"
 #import "SLElement.h"
 #import "SLUIAElement+Subclassing.h"
 #import "NSObject+SLAccessibilityHierarchy.h"
@@ -61,7 +62,7 @@ UIAccessibilityTraits SLUIAccessibilityTraitAny = 0;
         traitsString = @"(any)";
     } else {
         NSMutableArray *traitNames = [NSMutableArray array];
-        
+
         if (traits & UIAccessibilityTraitButton)                  [traitNames addObject:@"Button"];
         if (traits & UIAccessibilityTraitLink)                    [traitNames addObject:@"Link"];
         // UIAccessibilityTraitHeader is only available starting in iOS 6
@@ -218,7 +219,7 @@ UIAccessibilityTraits SLUIAccessibilityTraitAny = 0;
     NSException *__block actionException;
     do {
         actionException = nil;
-        
+
         NSDate *resolutionStart = [NSDate date];
         SLAccessibilityPath *accessibilityPath = [self accessibilityPathWithTimeout:remainingTimeout];
         NSTimeInterval resolutionDuration = [[NSDate date] timeIntervalSinceDate:resolutionStart];
@@ -227,7 +228,7 @@ UIAccessibilityTraits SLUIAccessibilityTraitAny = 0;
         if (!accessibilityPath) {
             [NSException raise:SLUIAElementInvalidException format:@"Element '%@' does not exist.", self];
         }
-        
+
         // It's possible, if unlikely, that one or more path components could have dropped
         // out of scope between the path's construction and its binding/serialization
         // here. If the representation is invalid, UIAutomation will throw an exception,
@@ -235,6 +236,8 @@ UIAccessibilityTraits SLUIAccessibilityTraitAny = 0;
         [accessibilityPath bindPath:^(SLAccessibilityPath *boundPath) {
             // catch and rethrow exceptions so that we can unbind the path
             @try {
+                [SLTestController testAccessibilityPath:boundPath];
+
                 NSString *UIARepresentation = [boundPath UIARepresentation];
 
                 if (self.shouldDoubleCheckValidity) {
@@ -299,7 +302,7 @@ UIAccessibilityTraits SLUIAccessibilityTraitAny = 0;
         SLAccessibilityPath *accessibilityPath = [self accessibilityPathWithTimeout:remainingTimeout];
         NSTimeInterval resolutionDuration = [[NSDate date] timeIntervalSinceDate:resolutionStart];
         remainingTimeout -= resolutionDuration;
-        
+
         if (!accessibilityPath) {
             [NSException raise:SLUIAElementInvalidException format:@"Element '%@' does not exist.", self];
         }

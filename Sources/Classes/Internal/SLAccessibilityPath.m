@@ -22,6 +22,7 @@
 
 #import "SLAccessibilityPath.h"
 #import "NSObject+SLAccessibilityHierarchy.h"
+#import "NSObject+SLAccessibilityDescription.h"
 #import "SLElement.h"
 #import "SLUIAElement+Subclassing.h"
 #import "SLMainThreadRef.h"
@@ -204,6 +205,20 @@
 - (instancetype)initWithRawAccessibilityElementPath:(NSArray *)accessibilityElementPath
                                         rawViewPath:(NSArray *)viewPath;
 
+/**
+ TODO: Fill out
+
+ @warning The accessibility path filters the component paths in the process of
+ initialization. If, after filtering, either path is empty, the accessibility
+ path will be released and this method will return nil.
+
+ @param accessibilityElementTree
+ @param rootElement
+ @return An initialized accessibility "path" (array of elements), or `nil` if the object couldn't be created.
+ */
+- (instancetype)initWithAccessibilityElementTree:(NSArray *)accessibilityElementTree
+                                     rootElement:(NSObject *)rootElement;
+
 @end
 
 
@@ -217,6 +232,39 @@
 
     return [[SLAccessibilityPath alloc] initWithRawAccessibilityElementPath:accessibilityElementPath
                                                                 rawViewPath:viewPath];
+}
+
+- (void)slDumpAllDescendantAccessibilityElements {
+    SLLog(@"View Hierarchy: %@", [self slRecursiveAccessibilityDescription]);
+
+    NSMutableArray *elementList = [[NSMutableArray alloc] init];
+    [self addAllElementsUnderRootElement:self toArray:elementList];
+    SLAccessibilityPath *accessibilityPath = [[SLAccessibilityPath alloc] initWithAccessibilityElementTree:elementList rootElement:self];
+
+    [accessibilityPath bindPath:^(SLAccessibilityPath *boundPath) {
+        [[SLTerminal sharedTerminal] evalWithFormat:@"UIATarget.localTarget().logElementTree();"];
+        SLLog(@"Set a breakpoint here to interact with Instruments directly");
+    }];
+}
+
+- (void)addAllElementsUnderRootElement:(NSObject *)rootElement toArray:(NSMutableArray*)elementList {
+    if ([rootElement respondsToSelector:@selector(accessibilityIdentifier)]) {
+        [elementList addObject:rootElement];
+    }
+
+    NSInteger count = [rootElement accessibilityElementCount];
+    if (count != NSNotFound && count > 0) {
+        for (NSInteger i = 0; i < count; i++) {
+            NSObject *childElement = [rootElement accessibilityElementAtIndex:i];
+            [self addAllElementsUnderRootElement:childElement toArray:elementList];
+        }
+    }
+
+    if ([rootElement isKindOfClass:[UIView class]]) {
+        for (NSObject *childElement in [(UIView *)rootElement subviews]) {
+            [self addAllElementsUnderRootElement:childElement toArray:elementList];
+        }
+    }
 }
 
 - (NSArray *)rawAccessibilityPathToElement:(SLElement *)element favoringSubviews:(BOOL)favoringSubviews {
@@ -428,6 +476,17 @@ static const void *const kUseSLReplacementIdentifierKey = &kUseSLReplacementIden
     return self;
 }
 
+// This is only being used for debugging
+- (instancetype)initWithAccessibilityElementTree:(NSArray *)accessibilityElementTree
+                                     rootElement:(NSObject *)rootElement {
+    self = [super init];
+    if (self) {
+        _accessibilityElementPath = [[self class] mapPathToBackgroundThread:accessibilityElementTree];
+        _destinationRef = [SLMainThreadRef refWithTarget:rootElement];
+    }
+    return self;
+}
+
 - (void)examineLastPathComponent:(void (^)(NSObject *lastPathComponent))block {
     dispatch_sync(dispatch_get_main_queue(), ^{
         block([_destinationRef target]);
@@ -470,10 +529,14 @@ static const void *const kUseSLReplacementIdentifierKey = &kUseSLReplacementIden
 }
 
 - (NSString *)UIARepresentation {
+    return [self UIARepresentationExcludingElementsFromTheEnd:0];
+}
+
+- (NSString *)UIARepresentationExcludingElementsFromTheEnd:(NSUInteger)numberToExclude {
     __block NSMutableString *uiaRepresentation = [@"UIATarget.localTarget().frontMostApp()" mutableCopy];
     dispatch_sync(dispatch_get_main_queue(), ^{
-        for (SLMainThreadRef *objRef in _accessibilityElementPath) {
-            NSObject *obj = [objRef target];
+        for (NSUInteger i = 0; i < _accessibilityElementPath.count - numberToExclude; i++) {
+            NSObject *obj = [[_accessibilityElementPath objectAtIndex:i] target];
 
             // see note on +mapPathToBackgroundThread:
             // we only throw a fatal exception if there *are* objects in the path
@@ -488,6 +551,21 @@ static const void *const kUseSLReplacementIdentifierKey = &kUseSLReplacementIden
         }
     });
     return uiaRepresentation;
+}
+
+- (NSUInteger)countOfElementsInPath {
+    return (NSUInteger)_accessibilityElementPath.count;
+}
+
+- (NSString *)recursiveDescriptionExcludingPathElementsFromTheEnd:(NSUInteger)numberToExclude {
+    __block NSString *description;
+
+    dispatch_sync(dispatch_get_main_queue(), ^{
+        NSUInteger index = _accessibilityElementPath.count - numberToExclude;
+        description = [[[_accessibilityElementPath objectAtIndex:index] target] slRecursiveAccessibilityDescription];
+    });
+
+    return description;
 }
 
 @end
