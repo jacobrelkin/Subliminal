@@ -242,18 +242,19 @@ static int __lastKnownLineNumber;
 
 - (void)testRunDidCatchException:(NSException *)exception testCaseSelector:(SEL)testCaseSelector {
     self.testCaseExceptionInfo = [SLTestCaseExceptionInfo exceptionInfoWithException:exception testCaseSelector:testCaseSelector];
-    
+
     NSException *exceptionToLog = [self exceptionByAddingFileInfo:self.testCaseExceptionInfo.exception];
     [[SLLogger sharedLogger] logException:exceptionToLog
                                  expected:[self.testCaseExceptionInfo isExpected]];
 
-    [self testCaseDidFailWithExceptionInfo:self.testCaseExceptionInfo];
+    [self testRunDidCatchExceptionWithExceptionInfo:self.testCaseExceptionInfo];
 }
 
 - (BOOL)runAndReportNumExecuted:(NSUInteger *)numCasesExecuted
                          failed:(NSUInteger *)numCasesFailed
              failedUnexpectedly:(NSUInteger *)numCasesFailedUnexpectedly {
     NSUInteger numberOfCasesExecuted = 0, numberOfCasesFailed = 0, numberOfCasesFailedUnexpectedly = 0;
+
 
     BOOL testDidFailInSetUpOrTearDown = NO;
     @try {
@@ -270,6 +271,7 @@ static int __lastKnownLineNumber;
         for (NSString *testCaseName in [[self class] testCasesToRun]) {
             @autoreleasepool {
                 // all logs below use the focused name, so that the logs are consistent
+                // with what's actually running
                 [[SLLogger sharedLogger] logTest:test caseStart:testCaseName];
 
                 // but pass the unfocused selector to setUp/tearDown methods,
@@ -279,6 +281,7 @@ static int __lastKnownLineNumber;
                 // clear call site information, so at the least it won't be reused between test cases
                 // (though we can't guarantee it won't be reused within a test case)
                 [SLTest clearLastKnownCallSite];
+                [self clearTestCaseExceptionState];
 
                 @try {
                     [self setUpTestCaseWithSelector:unfocusedTestCaseSelector];
@@ -299,6 +302,7 @@ static int __lastKnownLineNumber;
                     }
                 }
 
+                // If we didn't already fail, testCaseExceptionInfo will be nil
                 BOOL failureWasExpected = self.testCaseExceptionInfo.expected;
 
                 // Still perform tear-down even if set-up failed.
@@ -307,9 +311,11 @@ static int __lastKnownLineNumber;
                     [self tearDownTestCaseWithSelector:unfocusedTestCaseSelector];
                 }
                 @catch (NSException *exception) {
+                    BOOL succeededUntilTeardown = self.testCaseExceptionInfo == nil;
+
                     [self testRunDidCatchException:exception testCaseSelector:unfocusedTestCaseSelector];
 
-                    if (!self.testCaseExceptionInfo) {
+                    if (succeededUntilTeardown) {
                         failureWasExpected = self.testCaseExceptionInfo.expected;
                     }
                 }
@@ -383,7 +389,7 @@ static int __lastKnownLineNumber;
 }
 
 // Abstract
-- (void)testCaseDidFailWithExceptionInfo:(SLTestCaseExceptionInfo *)exceptionInfo {}
+- (void)testRunDidCatchExceptionWithExceptionInfo:(SLTestCaseExceptionInfo *)exceptionInfo {}
 
 @end
 
