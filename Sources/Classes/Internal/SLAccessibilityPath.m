@@ -235,8 +235,6 @@
 }
 
 - (void)slDumpAllDescendantAccessibilityElements {
-    SLLog(@"View Hierarchy: %@", [self slRecursiveAccessibilityDescription]);
-
     NSMutableArray *elementList = [[NSMutableArray alloc] init];
     [self addAllElementsUnderRootElement:self toArray:elementList];
     SLAccessibilityPath *accessibilityPath = [[SLAccessibilityPath alloc] initWithAccessibilityElementTree:elementList rootElement:self];
