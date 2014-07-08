@@ -46,8 +46,9 @@
 
 /**
  This is for debugging only
+ TODO: Need to add more information
  */
-- (void)slDumpAllDescendantAccessibilityElements;
+- (void)slLogFullySwizzledUIAElementTree;
 
 @end
 

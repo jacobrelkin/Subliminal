@@ -152,7 +152,7 @@
  NOTE: It swizzles all of the accessibility hierarchy, so if executing this from the
  debug console, make sure it during a call to -[SLAccessibilityPath bindPath].
  */
-+ (void)dumpFullElementTree;
++ (void)logFullySwizzledUIAElementTree;
 
 /**
  A debug method that ensures that the accessibility hierarchy is well-formed. It is

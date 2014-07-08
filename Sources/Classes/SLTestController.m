@@ -238,8 +238,15 @@ u_int32_t random_uniform(u_int32_t upperBound) {
     }
 }
 
-+ (void)dumpFullElementTree {
-    [[[UIApplication sharedApplication] keyWindow] slDumpAllDescendantAccessibilityElements];
++ (void)logFullySwizzledUIAElementTree {
+    NSMutableArray *windows = [NSMutableArray arrayWithArray:[[UIApplication sharedApplication] windows]];
+
+    UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
+    if (![windows containsObject:keyWindow]) {
+        [windows addObject:keyWindow];
+    }
+
+    [windows slLogFullySwizzledUIAElementTree];
 }
 
 + (void)testAccessibilityPath:(SLAccessibilityPath *)path {
