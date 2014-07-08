@@ -566,11 +566,11 @@ static const void *const kUseSLReplacementIdentifierKey = &kUseSLReplacementIden
     return (NSUInteger)_accessibilityElementPath.count;
 }
 
-- (NSString *)recursiveDescriptionExcludingPathElementsFromTheEnd:(NSUInteger)numberToExclude {
+- (NSString *)recursiveDescriptionForElementFromTheEnd:(NSUInteger)elementsFromEnd {
     __block NSString *description;
 
     dispatch_sync(dispatch_get_main_queue(), ^{
-        NSUInteger index = _accessibilityElementPath.count - numberToExclude;
+        NSUInteger index = _accessibilityElementPath.count - elementsFromEnd;
         description = [[[_accessibilityElementPath objectAtIndex:index] target] slRecursiveAccessibilityDescription];
     });
 

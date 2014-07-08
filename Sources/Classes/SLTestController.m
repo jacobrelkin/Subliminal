@@ -264,7 +264,7 @@ u_int32_t random_uniform(u_int32_t upperBound) {
         if ([(NSString *)[[SLTerminal sharedTerminal] eval:[[NSString alloc] initWithFormat:@"%@.isValid()", pathAsString]] boolValue]) {
             SLLog(@"PARTIAL PATH FOUND: %@ OF FULL PATH: %@", pathAsString, fullPath);
             [[SLTerminal sharedTerminal] eval:[[NSString alloc] initWithFormat:@"%@.logElementTree()", pathAsString]];
-            SLLog(@"%@", [path recursiveDescriptionExcludingPathElementsFromTheEnd:itemsToExclude]);
+            SLLog(@"%@", [path recursiveDescriptionForElementFromTheEnd:itemsToExclude]);
 
             return;
         }
@@ -272,7 +272,7 @@ u_int32_t random_uniform(u_int32_t upperBound) {
 
     SLLog(@"NONE OF PATH FOUND: %@, FULL PATH: %@", pathAsString, fullPath);
     [[SLTerminal sharedTerminal] eval:@"UIATarget.localTarget().logElementTree()"];
-    SLLog(@"%@", [path recursiveDescriptionExcludingPathElementsFromTheEnd:path.countOfElementsInPath]);
+    SLLog(@"%@", [path recursiveDescriptionForElementFromTheEnd:path.countOfElementsInPath]);
 
     return;
 }

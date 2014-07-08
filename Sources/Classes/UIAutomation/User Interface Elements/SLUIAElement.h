@@ -106,6 +106,8 @@
  Waits until an elements isValid check returns YES, or the timeout expires and throws
  an exception
 
+ @param timeout The time to wait for an element to become valid
+
  @exception SLUIAElementInvalidException Raised if the element is not valid by the
  end of the timeout.
  */

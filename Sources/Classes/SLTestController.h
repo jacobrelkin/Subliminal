@@ -159,6 +159,8 @@
  intended to be used to check the swizzled accessibility path within the block callback
  from -[SLAccessibilityPath bindPath]. It does currently disturb the SLAccessibilityPath
  object itself, because the object isn't copyable.
+
+ @param path the accessibility path to test
  */
 + (void)testAccessibilityPath:(SLAccessibilityPath *)path;
 
