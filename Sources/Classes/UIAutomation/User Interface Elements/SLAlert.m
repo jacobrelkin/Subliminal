@@ -399,7 +399,15 @@ static BOOL SLAlertHandlerLoggingEnabled = NO;
     NSString *UIAAlertHandler = [NSString stringWithFormat:@"\
                                      var buttonElement = (%@)('%@');\
                                      if (buttonElement && buttonElement.isValid()) {\
-                                        buttonElement.tap();\
+                                        UIATarget.localTarget().pushTimeout(2);\
+                                        try {\
+                                            buttonElement.tap();\
+                                        } catch (e) {\
+                                            UIATarget.localTarget().delay(2);\
+                                            buttonElement.tap();\
+                                        } finally {\
+                                            UIATarget.localTarget().popTimeout();\
+                                        }\
                                         return true;\
                                      } else {\
                                         return false;\
