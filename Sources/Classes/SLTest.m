@@ -36,9 +36,6 @@
 // call site information to exceptions.
 static NSString *const SLTestExceptionNamePrefix       = @"SLTest";
 
-NSString *const SLTestAssertionFailedException  = @"SLTestCaseAssertionFailedException";
-
-const NSTimeInterval SLWaitUntilTrueRetryDelay = 0.25;
 
 @interface SLTest ()
 

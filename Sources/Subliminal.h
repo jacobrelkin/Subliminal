@@ -23,6 +23,7 @@
 #import "SLTestController.h"
 #import "SLTestController+AppHooks.h"
 #import "SLTest.h"
+#import "SLTestAssertions.h"
 #import "SLTestCaseExceptionInfo.h"
 
 #import "SLDevice.h"
