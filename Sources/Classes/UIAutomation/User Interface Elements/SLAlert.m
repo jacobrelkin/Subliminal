@@ -402,9 +402,6 @@ static BOOL SLAlertHandlerLoggingEnabled = NO;
                                         UIATarget.localTarget().pushTimeout(2);\
                                         try {\
                                             buttonElement.tap();\
-                                        } catch (e) {\
-                                            UIATarget.localTarget().delay(2);\
-                                            buttonElement.tap();\
                                         } finally {\
                                             UIATarget.localTarget().popTimeout();\
                                         }\
