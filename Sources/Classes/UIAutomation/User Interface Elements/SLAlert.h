@@ -289,6 +289,8 @@ extern const NSTimeInterval SLAlertHandlerDidHandleAlertDelay;
 @end
 
 
+#if DEBUG
+
 /**
  The methods in the `SLAlert (Debugging)` category are to be used only to 
  debug Subliminal tests.
@@ -313,6 +315,8 @@ extern const NSTimeInterval SLAlertHandlerDidHandleAlertDelay;
 - (SLAlertDismissHandler *)dismissByUser;
 
 @end
+
+#endif
 
 /**
  The methods in the `SLAlertHandler (Debugging)` category may be useful 

@@ -462,6 +462,9 @@ static BOOL SLAlertHandlerLoggingEnabled = NO;
 
 @end
 
+
+#if DEBUG
+
 @implementation SLAlert (Debugging)
 
 - (SLAlertDismissHandler *)dismissByUser {
@@ -473,3 +476,5 @@ static BOOL SLAlertHandlerLoggingEnabled = NO;
 }
 
 @end
+
+#endif
