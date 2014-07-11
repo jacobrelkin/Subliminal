@@ -38,7 +38,6 @@ static NSString *const SLTestExceptionNamePrefix       = @"SLTest";
 
 
 @interface SLTest ()
-
 @property (nonatomic, strong) SLTestCaseExceptionInfo *testCaseExceptionInfo;
 
 @end
