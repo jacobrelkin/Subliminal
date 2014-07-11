@@ -152,13 +152,15 @@
  NOTE: It swizzles all of the accessibility hierarchy, so if executing this from the
  debug console, make sure it during a call to -[SLAccessibilityPath bindPath].
  */
-+ (void)dumpFullElementTree;
++ (void)logFullySwizzledUIAElementTree;
 
 /**
  A debug method that ensures that the accessibility hierarchy is well-formed. It is
  intended to be used to check the swizzled accessibility path within the block callback
  from -[SLAccessibilityPath bindPath]. It does currently disturb the SLAccessibilityPath
  object itself, because the object isn't copyable.
+
+ @param path the accessibility path to test
  */
 + (void)testAccessibilityPath:(SLAccessibilityPath *)path;
 

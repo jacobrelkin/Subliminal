@@ -234,12 +234,23 @@
                                                                 rawViewPath:viewPath];
 }
 
-- (void)slDumpAllDescendantAccessibilityElements {
+- (void)slLogFullySwizzledUIAElementTree {
+    NSArray *elements;
+    if (![self isKindOfClass:[NSArray class]]) {
+        elements = [NSArray arrayWithObject:self];
+    } else {
+        elements = (NSArray *)self;
+    }
+
     NSMutableArray *elementList = [[NSMutableArray alloc] init];
-    [self addAllElementsUnderRootElement:self toArray:elementList];
+    for (NSUInteger i = 0; i < elements.count; i++) {
+        [self addAllElementsUnderRootElement:elements[i] toArray:elementList];
+    }
+
     SLAccessibilityPath *accessibilityPath = [[SLAccessibilityPath alloc] initWithAccessibilityElementTree:elementList rootElement:self];
 
     [accessibilityPath bindPath:^(SLAccessibilityPath *boundPath) {
+        // TODO: Replace logElementTree with something that can be more easily ingested and doesn't take another screenshot
         [[SLTerminal sharedTerminal] evalWithFormat:@"UIATarget.localTarget().logElementTree();"];
         SLLog(@"Set a breakpoint here to interact with Instruments directly");
     }];
@@ -555,11 +566,11 @@ static const void *const kUseSLReplacementIdentifierKey = &kUseSLReplacementIden
     return (NSUInteger)_accessibilityElementPath.count;
 }
 
-- (NSString *)recursiveDescriptionExcludingPathElementsFromTheEnd:(NSUInteger)numberToExclude {
+- (NSString *)recursiveDescriptionForElementFromTheEnd:(NSUInteger)elementsFromEnd {
     __block NSString *description;
 
     dispatch_sync(dispatch_get_main_queue(), ^{
-        NSUInteger index = _accessibilityElementPath.count - numberToExclude;
+        NSUInteger index = _accessibilityElementPath.count - elementsFromEnd;
         description = [[[_accessibilityElementPath objectAtIndex:index] target] slRecursiveAccessibilityDescription];
     });
 

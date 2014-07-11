@@ -45,9 +45,24 @@
 - (SLAccessibilityPath *)slAccessibilityPathToElement:(SLElement *)element;
 
 /**
- This is for debugging only
+ This is intended for debugging purposes only. The method will find all windows,
+ and then swizzle their accessibilityIdentifiers to have the uniquified values
+ (combination of its class and memory address).
+
+ This is useful for finding elements that aren't in the normal accessibility hierarchy
+ that need to have an accessibilityIdentifier or accessibilityLabel value set on them.
+ It can also be used to correlate between elements in the view hierarchy and the normal 
+ UIA representation.
+
+ Example:
+  View Hierarchy: [[[UIApplication sharedApplication] keyWindow] slRecursiveAccessibilityDescription]
+  UIA Hierarchy: [[SLTerminal sharedTerminal] eval:@"UIATarget.localTarget().logElementTree()"]
+
+ @warning This will cause many elements that aren't normally in the accessibility
+ hierarchy to show up. This is because some elements only appear if they have
+ accessibility values set.
  */
-- (void)slDumpAllDescendantAccessibilityElements;
+- (void)slLogFullySwizzledUIAElementTree;
 
 @end
 
@@ -143,11 +158,16 @@
 - (NSString *)UIARepresentation;
 
 /**
- Returns the representation of the path as understood by UIAutomation.
+ Returns the representation of the path as understood by UIAutomation. It trims the last
+ specified number of elements from the accessibility path, and then generates the proper
+ string representation of the path.
 
  @see -UIARepresentation
 
- @param itemsToIgnore The number of items to leave off the UIA query string
+ This is used in conjunction with -[self UIARepresentationExcludingElementsFromTheEnd] to
+ make -[SLTestController testAccessibilityPath] work.
+
+ @param numberToExclude The number of elements to trim from the end of the current path
 
  @return A JavaScript expression that represents the absolute path to the `UIAElement`
  corresponding to the last component of the receiver.
@@ -160,10 +180,16 @@
 - (NSUInteger)countOfElementsInPath;
 
 /**
- @param index The index of which item to return from the accessibility path.
+ Logs the recursive accessibility description for a element a specified number of elements
+ from the end of the accessibility path.
+
+ This is used in conjunction with -[self UIARepresentationExcludingElementsFromTheEnd] to
+ make -[SLTestController testAccessibilityPath] work.
+
+ @param elementsFromEnd The number of elements to trim from the end of the current path
 
  @return The element at the specified index.
  */
-- (NSString *)recursiveDescriptionExcludingPathElementsFromTheEnd:(NSUInteger)numberToExclude;
+- (NSString *)recursiveDescriptionForElementFromTheEnd:(NSUInteger)elementsFromEnd;
 
 @end
