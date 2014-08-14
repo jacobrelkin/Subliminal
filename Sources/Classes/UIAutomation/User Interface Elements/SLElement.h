@@ -172,11 +172,6 @@
  */
 - (void)logElement;
 
-/**
- Controls whether an element is only matched when it is not hidden.
- */
-@property (nonatomic, assign) BOOL matchOnlyIfVisible;
-
 @end
 
 
