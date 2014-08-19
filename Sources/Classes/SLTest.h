@@ -523,3 +523,13 @@
 + (void)recordLastKnownFile:(const char *)filename line:(int)lineNumber;
 
 @end
+
+@interface SLTest (SLTestCaseVariations)
+
+@property (nonatomic, strong) NSObject *currentVariation;
+
+- (NSString *)descriptionForVariationValue:(NSObject *)variation forSelector:(SEL)testCaseSelector;
+- (NSArray *)variationsForTestCaseSelector:(SEL)testCaseSelector;
++ (NSArray *)allVariationsOfDictionary:(NSDictionary *)dictionary;
+
+@end

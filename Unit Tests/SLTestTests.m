@@ -1637,6 +1637,26 @@
     STAssertNoThrow([testMock verify], @"Test case did not execute as expected.");
 }
 
+#pragma mark - SLTestCaseVariations
+
+- (void)testAllVariationsOfDictionary {
+    NSDictionary *input = @{
+                            @"letters": @[@"A", @"B"],
+                            @"numbers": @[@1, @2]
+                            };
+    NSArray *output = [SLTest allVariationsOfDictionary:input];
+    NSArray *expectedOutput = @[
+                                @{@"letters": @"A", @"numbers": @1},
+                                @{@"letters": @"A", @"numbers": @2},
+                                @{@"letters": @"B", @"numbers": @1},
+                                @{@"letters": @"B", @"numbers": @2}
+                              ];
+
+    // The order of the test cases is arbitrary, so we should be treating
+    // it as a set rather than an array
+    STAssertEqualObjects([NSSet setWithArray:output], [NSSet setWithArray:expectedOutput], @"The sets of tests don't match");
+}
+
 #pragma mark - Miscellaneous
 
 #pragma mark -UIAElement macro

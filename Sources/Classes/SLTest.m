@@ -348,7 +348,7 @@ static int __lastKnownLineNumber;
 - (BOOL)runAndReportNumExecuted:(NSUInteger *)numCasesExecuted
                          failed:(NSUInteger *)numCasesFailed
              failedUnexpectedly:(NSUInteger *)numCasesFailedUnexpectedly {
-    NSUInteger numberOfCasesExecuted = 0, numberOfCasesFailed = 0, numberOfCasesFailedUnexpectedly = 0;
+    __block NSUInteger numberOfCasesExecuted = 0, numberOfCasesFailed = 0, numberOfCasesFailedUnexpectedly = 0;
 
 
     BOOL testDidFailInSetUpOrTearDown = NO;
@@ -363,67 +363,38 @@ static int __lastKnownLineNumber;
     // if setUpTest failed, skip the test cases
     if (!testDidFailInSetUpOrTearDown) {
         NSString *test = NSStringFromClass([self class]);
+
         for (NSString *testCaseName in [[self class] testCasesToRun]) {
-            @autoreleasepool {
-                // all logs below use the focused name, so that the logs are consistent
-                // with what's actually running
-                [[SLLogger sharedLogger] logTest:test caseStart:testCaseName];
+            // Pass the unfocused selector to setUp/tearDown methods,
+            // because focus is temporary and shouldn't require modifying the test infrastructure
+            SEL unfocusedTestCaseSelector = NSSelectorFromString([[self class] unfocusedTestCaseName:testCaseName]);
 
-                // but pass the unfocused selector to setUp/tearDown methods,
-                // because focus is temporary and shouldn't require modifying the test infrastructure
-                SEL unfocusedTestCaseSelector = NSSelectorFromString([[self class] unfocusedTestCaseName:testCaseName]);
-
-                // clear call site information, so at the least it won't be reused between test cases
-                // (though we can't guarantee it won't be reused within a test case)
-                [SLTest clearLastKnownCallSite];
-                [self clearTestCaseExceptionState];
-
-                @try {
-                    [self setUpTestCaseWithSelector:unfocusedTestCaseSelector];
-                }
-                @catch (NSException *exception) {
-                    [self testRunDidCatchException:exception testCaseSelector:unfocusedTestCaseSelector];
-                }
-
-                // Only execute the test case if set-up succeeded.
-                if (!self.testCaseExceptionInfo) {
-                    @try {
-                        // We use objc_msgSend so that Clang won't complain about performSelector leaks
-                        // Make sure to send the actual test case selector
-                        ((void(*)(id, SEL))objc_msgSend)(self, NSSelectorFromString(testCaseName));
-                    }
-                    @catch (NSException *exception) {
-                        [self testRunDidCatchException:exception testCaseSelector:unfocusedTestCaseSelector];
-                    }
-                }
-
-                // If we didn't already fail, testCaseExceptionInfo will be nil
-                BOOL failureWasExpected = self.testCaseExceptionInfo.expected;
-
-                // Still perform tear-down even if set-up failed.
-                // If the app is in an inconsistent state, then tear-down should fail.
-                @try {
-                    [self tearDownTestCaseWithSelector:unfocusedTestCaseSelector];
-                }
-                @catch (NSException *exception) {
-                    BOOL succeededUntilTeardown = self.testCaseExceptionInfo == nil;
-
-                    [self testRunDidCatchException:exception testCaseSelector:unfocusedTestCaseSelector];
-
-                    if (succeededUntilTeardown) {
-                        failureWasExpected = self.testCaseExceptionInfo.expected;
-                    }
-                }
-
-                if (self.testCaseExceptionInfo) {
-                    [[SLLogger sharedLogger] logTest:test caseFail:testCaseName expected:failureWasExpected];
-                    numberOfCasesFailed++;
-                    if (!failureWasExpected) numberOfCasesFailedUnexpectedly++;
-                } else {
-                    [[SLLogger sharedLogger] logTest:test casePass:testCaseName];
-                }
-                numberOfCasesExecuted++;
+            NSArray *variations = [self variationsForTestCaseSelector:unfocusedTestCaseSelector];
+            if (variations.count == 0) {
+                // Run this test case normally without any variations
+                variations = @[[NSNull null]];
             }
+
+            [variations enumerateObjectsUsingBlock:^(NSObject *obj, NSUInteger idx, BOOL *stop) {
+                NSString *caseName = testCaseName;
+                self.currentVariation = obj;
+
+                if (obj != [NSNull null]) {
+                    // Do stuff related to running this particular variation
+                    NSString *description = [self descriptionForVariationValue:obj forSelector:unfocusedTestCaseSelector];
+                    caseName = [caseName stringByAppendingFormat:@"_%@", description];
+                }
+
+                BOOL failedUnexpectedly = NO;
+                BOOL succeeded = [self _runTestCase:caseName selector:unfocusedTestCaseSelector inTest:test failedUnexpectedly:&failedUnexpectedly];
+                if (!succeeded) {
+                    numberOfCasesFailed++;
+
+                    if (failedUnexpectedly) numberOfCasesFailedUnexpectedly++;
+                }
+
+                numberOfCasesExecuted++;
+            }];
         }
     }
 
@@ -441,6 +412,69 @@ static int __lastKnownLineNumber;
     if (numCasesFailedUnexpectedly) *numCasesFailedUnexpectedly = numberOfCasesFailedUnexpectedly;
 
     return !testDidFailInSetUpOrTearDown;
+}
+
+- (BOOL)_runTestCase:(NSString *)testCaseName selector:(SEL)selector inTest:(NSString *)test failedUnexpectedly:(inout BOOL *)failedUnexpectedlyPtr {
+    BOOL success = YES;
+
+    @autoreleasepool {
+        // all logs below use the focused name, so that the logs are consistent
+        // with what's actually running
+
+        [[SLLogger sharedLogger] logTest:test caseStart:testCaseName];
+
+        // clear call site information, so at the least it won't be reused between test cases
+        // (though we can't guarantee it won't be reused within a test case)
+        [SLTest clearLastKnownCallSite];
+        [self clearTestCaseExceptionState];
+
+        @try {
+            [self setUpTestCaseWithSelector:selector];
+        }
+        @catch (NSException *exception) {
+            [self testRunDidCatchException:exception testCaseSelector:selector];
+        }
+
+        // Only execute the test case if set-up succeeded.
+        if (!self.testCaseExceptionInfo) {
+            @try {
+                // We use objc_msgSend so that Clang won't complain about performSelector leaks
+                // Make sure to send the actual test case selector
+                ((void(*)(id, SEL))objc_msgSend)(self, selector);
+            }
+            @catch (NSException *exception) {
+                [self testRunDidCatchException:exception testCaseSelector:selector];
+            }
+        }
+
+        // If we didn't already fail, testCaseExceptionInfo will be nil
+        BOOL failureWasExpected = self.testCaseExceptionInfo.expected;
+
+        // Still perform tear-down even if set-up failed.
+        // If the app is in an inconsistent state, then tear-down should fail.
+        @try {
+            [self tearDownTestCaseWithSelector:selector];
+        }
+        @catch (NSException *exception) {
+            BOOL succeededUntilTeardown = self.testCaseExceptionInfo == nil;
+
+            [self testRunDidCatchException:exception testCaseSelector:selector];
+
+            if (succeededUntilTeardown) {
+                failureWasExpected = self.testCaseExceptionInfo.expected;
+            }
+        }
+
+        if (self.testCaseExceptionInfo) {
+            [[SLLogger sharedLogger] logTest:test caseFail:testCaseName expected:failureWasExpected];
+            success = NO;
+            if (!failureWasExpected && failedUnexpectedlyPtr) *failedUnexpectedlyPtr = YES;
+        } else {
+            [[SLLogger sharedLogger] logTest:test casePass:testCaseName];
+        }
+    }
+
+    return success;
 }
 
 - (void)wait:(NSTimeInterval)interval {
@@ -488,3 +522,53 @@ static int __lastKnownLineNumber;
 
 @end
 
+
+@implementation SLTest (SLTestCaseVariations)
+
+#pragma mark - Properties
+
+static const char SLTestCurrentVariationAssociatedObjectKey;
+
+- (NSDictionary *)currentVariation {
+    return objc_getAssociatedObject(self, &SLTestCurrentVariationAssociatedObjectKey);
+}
+
+- (void)setCurrentVariation:(NSDictionary *)currentVariation {
+    objc_setAssociatedObject(self, &SLTestCurrentVariationAssociatedObjectKey, currentVariation, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+#pragma mark -
+
+- (NSString *)descriptionForVariationValue:(NSObject *)variation forSelector:(SEL)testCaseSelector {
+    if ([variation isKindOfClass:[NSDictionary class]]) {
+        return [[(NSDictionary *)variation allValues] componentsJoinedByString:@"_"];
+    }
+
+    return variation.description;
+}
+
+- (NSArray *)variationsForTestCaseSelector:(SEL)testCaseSelector {
+    return nil;
+}
+
++ (NSArray *)allVariationsOfDictionary:(NSDictionary *)dictionary {
+    NSMutableArray *variations = [NSMutableArray new];
+    [variations addObject:@{}];
+
+    [dictionary enumerateKeysAndObjectsUsingBlock:^(NSString *variationType, NSArray *possibleValues, BOOL *stop) {
+        // TODO type-check obj
+
+        NSMutableArray *expandedVariations = [NSMutableArray new];
+        for (NSDictionary *variation in variations) {
+            for (id possibleValue in possibleValues) {
+                NSMutableDictionary *expandedParameterMap = [variation mutableCopy];
+                expandedParameterMap[variationType] = possibleValue;
+                [expandedVariations addObject:expandedParameterMap];
+            }
+        }
+        [variations setArray:expandedVariations];
+    }];
+    return variations.copy;
+}
+
+@end
