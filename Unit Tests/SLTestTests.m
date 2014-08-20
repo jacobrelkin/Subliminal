@@ -1640,7 +1640,7 @@
 
 #pragma mark - SLTestCaseVariations
 
-- (void)testSLTestRunWithVariations {
+- (void)testVariantTestCase {
     Class testClass = [TestWithVariations class];
     SEL baseVariationSelector = @selector(testCaseWithVariations);
     id testMock = [OCMockObject partialMockForClass:testClass];
@@ -1648,7 +1648,7 @@
     NSMutableSet *variationCache = [NSMutableSet new];
     NSArray *allVariations = [TestWithVariations allVariations];
 
-    // We expect a variated test case to be called allVariations.count times.
+    // We expect a variant test case to be called allVariations.count times.
     for (id variation in allVariations) {
         // For every variation, expect:
         // 1) The test case is invoked.
@@ -1672,12 +1672,21 @@
         [[_loggerMock expect] logTest:NSStringFromClass(testClass) caseStart:expectedTestCaseName];
     }
 
-    // Non-variated test case (-testCaseWithoutVariations)
-    [[testMock reject] descriptionForVariationValue:OCMOCK_ANY forSelector:baseVariationSelector];
+    SLRunTestsAndWaitUntilFinished([NSSet setWithObject:testClass], nil);
 
+    STAssertNoThrow([_loggerMock verify], @"Logger didn't receive expected messages");
+    STAssertNoThrow([testMock verify], @"Test case did not execute as expected.");
+}
+
+- (void)testInvariantTestCase {
+    Class testClass = [TestWithVariations class];
+    SEL baseVariationSelector = @selector(testCaseWithoutVariations);
+    id testMock = [OCMockObject partialMockForClass:testClass];
+
+    [[testMock reject] descriptionForVariationValue:OCMOCK_ANY forSelector:baseVariationSelector];
     [[[testMock expect] andDo:^(NSInvocation *invocation) {
         SLTest *test = [invocation target];
-        STAssertNil(test.currentVariation, @"currentVariation should be nil for a non-variated test case");
+        STAssertNil(test.currentVariation, @"currentVariation should be nil for an invariant test case");
     }] testCaseWithoutVariations];
 
     SLRunTestsAndWaitUntilFinished([NSSet setWithObject:testClass], nil);
