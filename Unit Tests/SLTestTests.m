@@ -1640,24 +1640,49 @@
 
 #pragma mark - SLTestCaseVariations
 
-- (void)testAllVariationsOfTestCaseAreInvoked {
+- (void)testSLTestRunWithVariations {
     Class testClass = [TestWithVariations class];
+    SEL baseVariationSelector = @selector(testCaseWithVariations);
     id testMock = [OCMockObject partialMockForClass:testClass];
 
-    NSUInteger expectedMethodInvocations = [TestWithVariations allVariations].count;
-    for (NSUInteger i = 0; i < expectedMethodInvocations; ++i) {
+    NSMutableSet *variationCache = [NSMutableSet new];
+    NSArray *allVariations = [TestWithVariations allVariations];
+
+    for (int i = 0; i < allVariations.count; ++i) {
+        [[[testMock stub] andReturn:@"FOOBAR"] descriptionForVariationValue:OCMOCK_ANY forSelector:baseVariationSelector];
+
+        // For every variation, expect:
+        // 1) The test case is invoked for every variation.
+        // 2) The test has a currentVariation.
+        // 3) The variation is unique.
+
         [[[testMock expect] andDo:^(NSInvocation *invocation) {
             SLTest *test = [invocation target];
-            STAssertNotNil(test.currentVariation, @"currentVariation should be non-nil!");
+            id variation = test.currentVariation;
+
+            STAssertNotNil(variation, @"currentVariation should be non-nil!");
+            STAssertTrue(![variationCache containsObject:variation], @"each variation should be unique!");
+
+            [variationCache addObject:variation];
         }] testCaseWithVariations];
+
+        // Expect that the description is appended to the test case name and logged.
+        NSString *expectedTestCaseName = [NSStringFromSelector(baseVariationSelector) stringByAppendingString:@"_FOOBAR"];
+        [[_loggerMock expect] logTest:NSStringFromClass(testClass) caseStart:expectedTestCaseName];
     }
 
+    // This method shouldn't be called for non-variated test case methods.
+    [[testMock reject] descriptionForVariationValue:OCMOCK_ANY forSelector:baseVariationSelector];
+
+    // Expect that any call to -testCaseWithoutVariations results in a nil currentVariation.
     [[[testMock expect] andDo:^(NSInvocation *invocation) {
         SLTest *test = [invocation target];
         STAssertNil(test.currentVariation, @"currentVariation should be nil!");
     }] testCaseWithoutVariations];
 
     SLRunTestsAndWaitUntilFinished([NSSet setWithObject:testClass], nil);
+
+    STAssertNoThrow([_loggerMock verify], @"Logger didn't receive expected messages");
     STAssertNoThrow([testMock verify], @"Test case did not execute as expected.");
 }
 
