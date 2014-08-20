@@ -526,9 +526,9 @@
 
 @interface SLTest (SLTestCaseVariations)
 
-@property (nonatomic, strong) NSObject *currentVariation;
+@property (nonatomic, strong) id currentVariation;
 
-- (NSString *)descriptionForVariationValue:(NSObject *)variation forSelector:(SEL)testCaseSelector;
+- (NSString *)descriptionForVariationValue:(id)variation forSelector:(SEL)testCaseSelector;
 - (NSArray *)variationsForTestCaseSelector:(SEL)testCaseSelector;
 + (NSArray *)allVariationsOfDictionary:(NSDictionary *)dictionary;
 

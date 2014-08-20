@@ -232,3 +232,12 @@
 - (void)testOtherCase;
 
 @end
+
+@interface TestWithVariations : SLTest
+
++ (NSArray *)allVariations;
+
+- (void)testCaseWithoutVariations;
+- (void)testCaseWithVariations;
+
+@end

@@ -292,3 +292,25 @@
 - (void)testOtherCase {}
 
 @end
+
+@implementation TestWithVariations
+
++ (NSArray *)allVariations {
+    return [self.class allVariationsOfDictionary:@{
+                                                   @"letter":@[@"A", @"B", @"C"],
+                                                   @"number":@[@1, @2, @3]
+                                                   }];
+}
+
+- (NSArray *)variationsForTestCaseSelector:(SEL)testCaseSelector {
+    if ([NSStringFromSelector(testCaseSelector) isEqualToString:@"testCaseWithVariations"]) {
+        return [self.class allVariations];
+    }
+
+    return nil;
+}
+
+- (void)testCaseWithoutVariations {}
+- (void)testCaseWithVariations {}
+
+@end

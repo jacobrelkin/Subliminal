@@ -101,6 +101,7 @@
         [TestWithTagAAAandCCC class],
         [TestWithTagBBBandCCC class],
         [TestWithSomeTaggedTestCases class],
+        [TestWithVariations class],
         nil
     ];
     STAssertEqualObjects(allTests, expectedTests, @"Unexpected tests returned.");
@@ -1639,22 +1640,47 @@
 
 #pragma mark - SLTestCaseVariations
 
+- (void)testAllVariationsOfTestCaseAreInvoked {
+    Class testClass = [TestWithVariations class];
+    id testMock = [OCMockObject partialMockForClass:testClass];
+
+    NSUInteger expectedMethodInvocations = [TestWithVariations allVariations].count;
+    for (NSUInteger i = 0; i < expectedMethodInvocations; ++i) {
+        [[[testMock expect] andDo:^(NSInvocation *invocation) {
+            SLTest *test = [invocation target];
+            STAssertNotNil(test.currentVariation, @"currentVariation should be non-nil!");
+        }] testCaseWithVariations];
+    }
+
+    [[[testMock expect] andDo:^(NSInvocation *invocation) {
+        SLTest *test = [invocation target];
+        STAssertNil(test.currentVariation, @"currentVariation should be nil!");
+    }] testCaseWithoutVariations];
+
+    SLRunTestsAndWaitUntilFinished([NSSet setWithObject:testClass], nil);
+    STAssertNoThrow([testMock verify], @"Test case did not execute as expected.");
+}
+
 - (void)testAllVariationsOfDictionary {
     NSDictionary *input = @{
-                            @"letters": @[@"A", @"B"],
-                            @"numbers": @[@1, @2]
+                            @"letter": @[@"A", @"B"],
+                            @"number": @[@1, @2, @3]
                             };
     NSArray *output = [SLTest allVariationsOfDictionary:input];
     NSArray *expectedOutput = @[
-                                @{@"letters": @"A", @"numbers": @1},
-                                @{@"letters": @"A", @"numbers": @2},
-                                @{@"letters": @"B", @"numbers": @1},
-                                @{@"letters": @"B", @"numbers": @2}
+                                @{@"letter": @"A", @"number": @1},
+                                @{@"letter": @"A", @"number": @2},
+                                @{@"letter": @"A", @"number": @3},
+                                @{@"letter": @"B", @"number": @1},
+                                @{@"letter": @"B", @"number": @2},
+                                @{@"letter": @"B", @"number": @3}
                               ];
 
     // The order of the test cases is arbitrary, so we should be treating
     // it as a set rather than an array
-    STAssertEqualObjects([NSSet setWithArray:output], [NSSet setWithArray:expectedOutput], @"The sets of tests don't match");
+    STAssertEqualObjects([NSSet setWithArray:output],
+                         [NSSet setWithArray:expectedOutput],
+                         @"The sets of tests don't match");
 }
 
 #pragma mark - Miscellaneous

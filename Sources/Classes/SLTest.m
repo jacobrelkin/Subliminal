@@ -377,12 +377,17 @@ static int __lastKnownLineNumber;
 
             [variations enumerateObjectsUsingBlock:^(NSObject *obj, NSUInteger idx, BOOL *stop) {
                 NSString *caseName = testCaseName;
-                self.currentVariation = obj;
 
                 if (obj != [NSNull null]) {
                     // Do stuff related to running this particular variation
                     NSString *description = [self descriptionForVariationValue:obj forSelector:unfocusedTestCaseSelector];
-                    caseName = [caseName stringByAppendingFormat:@"_%@", description];
+                    if (description.length > 0) {
+                        caseName = [caseName stringByAppendingFormat:@"_%@", description];
+                    }
+
+                    self.currentVariation = obj;
+                } else {
+                    self.currentVariation = nil;
                 }
 
                 BOOL failedUnexpectedly = NO;
@@ -415,7 +420,7 @@ static int __lastKnownLineNumber;
 }
 
 - (BOOL)_runTestCase:(NSString *)testCaseName selector:(SEL)selector inTest:(NSString *)test failedUnexpectedly:(inout BOOL *)failedUnexpectedlyPtr {
-    BOOL success = YES;
+    BOOL success = NO;
 
     @autoreleasepool {
         // all logs below use the focused name, so that the logs are consistent
@@ -441,6 +446,7 @@ static int __lastKnownLineNumber;
                 // We use objc_msgSend so that Clang won't complain about performSelector leaks
                 // Make sure to send the actual test case selector
                 ((void(*)(id, SEL))objc_msgSend)(self, selector);
+                success = YES;
             }
             @catch (NSException *exception) {
                 [self testRunDidCatchException:exception testCaseSelector:selector];
@@ -467,7 +473,6 @@ static int __lastKnownLineNumber;
 
         if (self.testCaseExceptionInfo) {
             [[SLLogger sharedLogger] logTest:test caseFail:testCaseName expected:failureWasExpected];
-            success = NO;
             if (!failureWasExpected && failedUnexpectedlyPtr) *failedUnexpectedlyPtr = YES;
         } else {
             [[SLLogger sharedLogger] logTest:test casePass:testCaseName];
@@ -529,11 +534,11 @@ static int __lastKnownLineNumber;
 
 static const char SLTestCurrentVariationAssociatedObjectKey;
 
-- (NSDictionary *)currentVariation {
+- (id)currentVariation {
     return objc_getAssociatedObject(self, &SLTestCurrentVariationAssociatedObjectKey);
 }
 
-- (void)setCurrentVariation:(NSDictionary *)currentVariation {
+- (void)setCurrentVariation:(id)currentVariation {
     objc_setAssociatedObject(self, &SLTestCurrentVariationAssociatedObjectKey, currentVariation, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
@@ -555,17 +560,17 @@ static const char SLTestCurrentVariationAssociatedObjectKey;
     NSMutableArray *variations = [NSMutableArray new];
     [variations addObject:@{}];
 
-    [dictionary enumerateKeysAndObjectsUsingBlock:^(NSString *variationType, NSArray *possibleValues, BOOL *stop) {
-        // TODO type-check obj
-
+    [dictionary enumerateKeysAndObjectsUsingBlock:^(id key, NSArray *possibleValues, BOOL *stop) {
         NSMutableArray *expandedVariations = [NSMutableArray new];
+
         for (NSDictionary *variation in variations) {
             for (id possibleValue in possibleValues) {
                 NSMutableDictionary *expandedParameterMap = [variation mutableCopy];
-                expandedParameterMap[variationType] = possibleValue;
+                expandedParameterMap[key] = possibleValue;
                 [expandedVariations addObject:expandedParameterMap];
             }
         }
+
         [variations setArray:expandedVariations];
     }];
     return variations.copy;
