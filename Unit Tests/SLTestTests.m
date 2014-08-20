@@ -1648,13 +1648,15 @@
     NSMutableSet *variationCache = [NSMutableSet new];
     NSArray *allVariations = [TestWithVariations allVariations];
 
-    for (int i = 0; i < allVariations.count; ++i) {
-        [[[testMock stub] andReturn:@"FOOBAR"] descriptionForVariationValue:OCMOCK_ANY forSelector:baseVariationSelector];
-
+    // We expect a variated test case to be called allVariations.count times.
+    for (id variation in allVariations) {
         // For every variation, expect:
-        // 1) The test case is invoked for every variation.
+        // 1) The test case is invoked.
         // 2) The test has a currentVariation.
         // 3) The variation is unique.
+        // 4) The variation's description is appended to the test case name in the logs.
+
+        [[[testMock stub] andReturn:@"FOOBAR"] descriptionForVariationValue:variation forSelector:baseVariationSelector];
 
         [[[testMock expect] andDo:^(NSInvocation *invocation) {
             SLTest *test = [invocation target];
@@ -1666,18 +1668,16 @@
             [variationCache addObject:variation];
         }] testCaseWithVariations];
 
-        // Expect that the description is appended to the test case name and logged.
         NSString *expectedTestCaseName = [NSStringFromSelector(baseVariationSelector) stringByAppendingString:@"_FOOBAR"];
         [[_loggerMock expect] logTest:NSStringFromClass(testClass) caseStart:expectedTestCaseName];
     }
 
-    // This method shouldn't be called for non-variated test case methods.
+    // Non-variated test case (-testCaseWithoutVariations)
     [[testMock reject] descriptionForVariationValue:OCMOCK_ANY forSelector:baseVariationSelector];
 
-    // Expect that any call to -testCaseWithoutVariations results in a nil currentVariation.
     [[[testMock expect] andDo:^(NSInvocation *invocation) {
         SLTest *test = [invocation target];
-        STAssertNil(test.currentVariation, @"currentVariation should be nil!");
+        STAssertNil(test.currentVariation, @"currentVariation should be nil for a non-variated test case");
     }] testCaseWithoutVariations];
 
     SLRunTestsAndWaitUntilFinished([NSSet setWithObject:testClass], nil);
