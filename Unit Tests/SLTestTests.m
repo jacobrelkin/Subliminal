@@ -1652,7 +1652,7 @@
     for (id variation in allVariations) {
         // For every variation, expect:
         // 1) The test case is invoked.
-        // 2) The test has a currentVariation.
+        // 2) The test's currentVariation is equal to the current variation
         // 3) The variation is unique.
         // 4) The variation's description is appended to the test case name in the logs.
 
@@ -1660,12 +1660,12 @@
 
         [[[testMock expect] andDo:^(NSInvocation *invocation) {
             SLTest *test = [invocation target];
-            id variation = test.currentVariation;
+            id currentVariation = test.currentVariation;
 
-            STAssertNotNil(variation, @"currentVariation should be non-nil!");
-            STAssertTrue(![variationCache containsObject:variation], @"each variation should be unique!");
+            STAssertEqualObjects(variation, currentVariation, @"currentVariation should be non-nil!");
+            STAssertTrue(![variationCache containsObject:currentVariation], @"each variation should be unique!");
 
-            [variationCache addObject:variation];
+            [variationCache addObject:currentVariation];
         }] testCaseWithVariations];
 
         NSString *expectedTestCaseName = [NSStringFromSelector(baseVariationSelector) stringByAppendingString:@"_FOOBAR"];
@@ -1680,10 +1680,10 @@
 
 - (void)testInvariantTestCase {
     Class testClass = [TestWithVariations class];
-    SEL baseVariationSelector = @selector(testCaseWithoutVariations);
+    SEL selector = @selector(testCaseWithoutVariations);
     id testMock = [OCMockObject partialMockForClass:testClass];
 
-    [[testMock reject] descriptionForVariationValue:OCMOCK_ANY forSelector:baseVariationSelector];
+    [[testMock reject] descriptionForVariationValue:OCMOCK_ANY forSelector:selector];
     [[[testMock expect] andDo:^(NSInvocation *invocation) {
         SLTest *test = [invocation target];
         STAssertNil(test.currentVariation, @"currentVariation should be nil for an invariant test case");
