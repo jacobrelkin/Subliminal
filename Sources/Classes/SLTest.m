@@ -381,7 +381,6 @@ static int __lastKnownLineNumber;
                 if (obj != [NSNull null]) {
                     self.currentVariation = obj;
 
-                    // Do stuff related to running this particular variation
                     NSString *description = [self descriptionForVariationValue:obj forSelector:unfocusedTestCaseSelector];
                     if (description.length > 0) {
                         caseName = [caseName stringByAppendingFormat:@"_%@", description];
